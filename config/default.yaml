@@ -1,0 +1,91 @@
+# ---------------------------------------------------------------------------
+# Default configuration. Everything app- and model-specific lives here so the
+# harness runs on a NEW app by editing config only (no code changes).
+# Override any key with a second --config file or CLI flags.
+# ---------------------------------------------------------------------------
+
+app:
+  # Path to the DECOMPILED app (e.g. jadx output). Not the APK itself.
+  # Run scripts/decompile.sh first, or point this at any decompiled tree.
+  decompiled_path: ./data/decompiled/insecureshop
+  manifest_name: AndroidManifest.xml
+  # Which files count as "code/resources" worth scanning.
+  source_globs:
+    - "**/*.java"
+    - "**/*.kt"
+    - "**/*.smali"
+    - "**/*.xml"
+
+ingest:
+  max_file_bytes: 200000        # skip giant generated files
+  # Scan only the app's OWN package (read from the manifest's package= attr),
+  # not bundled libraries. General across apps; set false to scan everything.
+  app_package_only: true
+  always_include_globs:              # kept even when app_package_only is on
+    - "**/res/values/strings.xml"    # base-locale strings often hold secrets/config
+    - "**/res/values/arrays.xml"
+  # exclude noise that inflates tokens/credits without adding signal
+  exclude_globs:
+    - "**/R.java"
+    - "**/R$*.*"
+    - "**/BuildConfig.*"
+    - "**/databinding/**"            # generated view-binding classes
+    - "**/DataBinderMapper*.*"
+    - "**/androidx/**"
+    - "**/kotlin/**"
+    - "**/kotlinx/**"
+    - "**/com/google/**"
+  chunk:
+    max_chars: 48000            # per-request code budget (chars, ~ tokens*3.5)
+    hard_cap_files: 0           # 0 = no cap; else scan only first N ranked files
+
+# Model layer. provider + model + decoding params. Keys come from env (see
+# .env.example); each provider knows its own env var. Add a provider by adding
+# a class in src/apkscan/models/ and a line in registry.py — then it's config.
+models:
+  teacher:
+    provider: gemini
+    model: gemini-3.6-flash
+    temperature: 0.0
+    max_output_tokens: 8192
+  student:
+    # Defaults to Gemini Flash-Lite so the whole loop runs with ONE key.
+    # To use a real open model (the faithful "student"), switch to Groq:
+    #   provider: groq
+    #   model: llama-3.3-70b-versatile
+    provider: gemini
+    model: gemini-3.1-flash-lite
+    temperature: 0.0
+    max_output_tokens: 8192
+
+scan:
+  retries: 3
+  retry_backoff_seconds: 2.0
+
+lessons:
+  max_lessons: 15
+  # Reject any "lesson" that leaks instance-specific detail (file/line/class).
+  enforce_generality: true
+
+eval:
+  # Repeat the student baseline + lessoned scans N times and report the MEAN
+  # recall (and the per-run samples). Small models are noisy run-to-run, so N>1
+  # gives an honestly averaged lift instead of one lucky/unlucky draw. Costs ~2N
+  # student scans. Teacher scan + lesson distillation still run once.
+  repeats: 1
+
+match:
+  # How a model finding is matched to a ground-truth entry. See docs/writeup.md.
+  #   taxonomy  -> normalized-category equality (default; explainable, deterministic)
+  #   fuzzy     -> difflib similarity on normalized type strings
+  #   llm_judge -> ask the teacher if finding == GT (semantic; costs tokens)
+  strategy: taxonomy
+  fuzzy_threshold: 0.60
+  require_location: false       # if true, also require file/component overlap
+  llm_judge_provider: teacher   # used only when strategy: llm_judge
+
+ground_truth:
+  path: ./data/ground_truth/insecureshop.yaml
+
+output:
+  dir: ./runs

@@ -1,0 +1,8 @@
+# Runtime deps are intentionally minimal and SDK-free.
+# Providers talk to model APIs over plain HTTP (requests), so there is no
+# SDK version churn and the harness is trivial for an evaluator to run.
+requests>=2.31
+PyYAML>=6.0
+
+# Dev / test only
+pytest>=7.4

@@ -1,0 +1,105 @@
+# Ground truth for InsecureShop (the 19 vulnerabilities from the repo README).
+# https://github.com/hax0rgb/InsecureShop#vulnerabilities
+#
+# This is the ANSWER KEY, so it may name specific components/files (`location`).
+# The `category` values come from the app-agnostic taxonomy in taxonomy.py and
+# are what the matcher compares against. A new app ships its own file like this;
+# no code changes needed.
+app: InsecureShop
+source: https://github.com/hax0rgb/InsecureShop#vulnerabilities
+vulnerabilities:
+  - id: GT-01
+    title: "Hardcoded Credentials"
+    category: hardcoded_credentials
+    severity: high
+    location: {hint: "login credentials embedded in app"}
+  - id: GT-02
+    title: "Insufficient URL Validation"
+    category: webview_arbitrary_url_load
+    severity: high
+    location: {hint: "arbitrary URL loaded in WebView via deeplink"}
+  - id: GT-03
+    title: "Weak Host Validation Check"
+    category: weak_host_validation
+    severity: high
+    location: {hint: "host validation bypass -> arbitrary URL in WebView"}
+  - id: GT-04
+    title: "Arbitrary Code Execution"
+    category: arbitrary_code_execution
+    severity: critical
+    location: {hint: "code execution via third-party package contexts"}
+  - id: GT-05
+    title: "Access to Protected Components"
+    category: intent_redirection
+    severity: high
+    location: {hint: "embedded Intent passed to startActivity"}
+  - id: GT-06
+    title: "Unprotected Data URIs"
+    category: webview_untrusted_data_uri
+    severity: high
+    location: {hint: "untrusted URIs passed to loadUrl"}
+  - id: GT-07
+    title: "Theft of Arbitrary Files"
+    category: arbitrary_file_theft
+    severity: high
+    location: {component: "ChooserActivity", hint: "files stolen from local storage"}
+  - id: GT-08
+    title: "Using Components with Known Vulnerabilities"
+    category: known_vulnerable_component
+    severity: medium
+    location: {hint: "vulnerable library used to exfiltrate local files"}
+  - id: GT-09
+    title: "Insecure Broadcast Receiver"
+    category: insecure_broadcast_receiver
+    severity: high
+    location: {hint: "exported activity registers broadcast in onCreate; web_url param"}
+  - id: GT-10
+    title: "AWS Cognito Misconfiguration"
+    category: cloud_credential_misconfig
+    severity: high
+    location: {hint: "misconfigured Cognito -> S3 bucket access"}
+  - id: GT-11
+    title: "Insecure use of FilePaths in FileProvider"
+    category: insecure_fileprovider
+    severity: high
+    location: {component: "FileProvider", hint: "over-broad file-sharing paths expose root"}
+  - id: GT-12
+    title: "Use of Implicit intent to send a broadcast with sensitive data"
+    category: implicit_intent_sensitive_data
+    severity: high
+    location: {hint: "implicit intent broadcast leaks credentials"}
+  - id: GT-13
+    title: "Intercepting Implicit intent to load arbitrary URL"
+    category: implicit_intent_url_interception
+    severity: high
+    location: {hint: "implicit intent intercepted -> arbitrary URL in WebView"}
+  - id: GT-14
+    title: "Insecure Implementation of SetResult in exported Activity"
+    category: insecure_setresult
+    severity: medium
+    location: {component: "ResultActivity", hint: "setResult -> arbitrary content provider access"}
+  - id: GT-15
+    title: "Insecure Content Provider"
+    category: insecure_content_provider
+    severity: high
+    location: {hint: "exported content provider leaks user credentials"}
+  - id: GT-16
+    title: "Lack of SSL Certificate Validation"
+    category: ssl_validation_bypass
+    severity: high
+    location: {hint: "onReceivedSslError handler calls proceed()"}
+  - id: GT-17
+    title: "Insecure Webview Properties Enabled"
+    category: insecure_webview_settings
+    severity: medium
+    location: {hint: "insecure WebView settings (file/JS access) -> local data exfil"}
+  - id: GT-18
+    title: "Insecure Data Storage"
+    category: insecure_data_storage
+    severity: medium
+    location: {hint: "credentials stored locally unencrypted"}
+  - id: GT-19
+    title: "Insecure Logging"
+    category: insecure_logging
+    severity: low
+    location: {hint: "credentials written to logcat"}
