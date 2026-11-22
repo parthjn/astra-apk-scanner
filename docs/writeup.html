@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Astra Backend Take-Home — apkscan</title>
+<style>
+  @page { size: Letter; margin: 18mm 16mm; }
+  :root { --ink:#1a1a1a; --muted:#555; --rule:#d0d0d0; --accent:#0b5; --code-bg:#f6f8fa; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+    color: var(--ink); font-size: 10.5pt; line-height: 1.5; margin: 0;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  h1 { font-size: 20pt; margin: 0 0 2pt; letter-spacing: -0.2px; }
+  h2 { font-size: 13.5pt; margin: 18pt 0 6pt; padding-bottom: 3pt;
+       border-bottom: 2px solid var(--ink); page-break-after: avoid; }
+  h3 { font-size: 11pt; margin: 12pt 0 4pt; color: #000; page-break-after: avoid; }
+  p { margin: 6pt 0; }
+  ul, ol { margin: 6pt 0; padding-left: 20px; }
+  li { margin: 3pt 0; }
+  a { color: #0645ad; text-decoration: none; }
+  .sub { color: var(--muted); font-size: 10pt; margin: 2pt 0 10pt; }
+  code { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 9pt;
+         background: var(--code-bg); padding: 1px 4px; border-radius: 3px; }
+  table { border-collapse: collapse; width: 100%; margin: 8pt 0; font-size: 9.5pt;
+          page-break-inside: avoid; }
+  th, td { border: 1px solid var(--rule); padding: 5px 8px; text-align: left; vertical-align: top; }
+  th { background: #f0f2f4; font-weight: 600; }
+  pre.diagram { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 7.1pt;
+    line-height: 1.12; background: var(--code-bg); border: 1px solid var(--rule);
+    border-radius: 5px; padding: 10px 12px; overflow: hidden; white-space: pre;
+    page-break-inside: avoid; }
+  hr { border: 0; border-top: 1px solid var(--rule); margin: 14pt 0; }
+  .section { page-break-inside: auto; }
+  strong { font-weight: 700; }
+</style>
+</head>
+<body>
+
+<h1>Astra Backend Take-Home — apkscan</h1>
+<p class="sub">Repo: <a href="https://github.com/parthjn/astra-apk-scanner">github.com/parthjn/astra-apk-scanner</a></p>
+
+<div class="section">
+<h2>1. The match function (and why)</h2>
+<p><strong>Problem.</strong> A model finding is free text ("WebView proceeds on SSL error"); a ground-truth entry is also prose ("Lack of SSL Certificate Validation"). To measure recall I need a principled rule for when a finding <em>is</em> a ground-truth vuln — one that is explainable, deterministic, and <strong>not</strong> tuned to InsecureShop (the harness is graded on an unseen APK).</p>
+<p><strong>Choice: normalized-category matching (default <code>strategy: taxonomy</code>).</strong> Both sides are projected onto a small, app-agnostic taxonomy of Android weakness classes (<code>taxonomy.py</code>, ~22 categories from OWASP MASVS / Mobile Top 10: <code>ssl_validation_bypass</code>, <code>insecure_content_provider</code>, <code>intent_redirection</code>, …). A finding matches a ground-truth entry <strong>iff they map to the same canonical category</strong>. Each GT entry is credited <strong>at most once</strong> (no double-counting), so <code>recall = |GT categories hit| / |GT|</code>.</p>
+<p><strong>Why this one.</strong> It is:</p>
+<ul>
+<li><em>Deterministic &amp; auditable</em> — no model in the eval loop, so the recall number isn't itself an LLM guess. A reviewer can read exactly why each match fired.</li>
+<li><em>App-agnostic</em> — categories and keyword aliases describe weakness <em>classes</em>, not InsecureShop files, so the same matcher works on a new app's ground truth.</li>
+<li><em>Robust to location drift</em> — jadx vs. apktool vs. source produce different paths/line numbers, so I do <strong>not</strong> require exact file/line agreement by default. Location is used only as an optional tie-breaker (<code>match.require_location</code>) via component-name overlap.</li>
+</ul>
+<p><strong>Honest limits.</strong> Category matching can <strong>over-credit</strong>: if ground truth has one "Insecure Logging" and the model flags logging <em>anywhere</em>, it counts — even if it found a different log line. It can also <strong>under-credit</strong> when the taxonomy lumps two distinct GT entries into one category. I mitigate by keeping categories fine-grained (each of the 19 GT items maps to a distinct category) and by reporting <strong>precision</strong> alongside recall so inflation is visible. Two alternative strategies ship behind config: <code>fuzzy</code> (difflib on normalized text — a zero-infra catch-all) and <code>llm_judge</code> (a model decides equivalence per pair — most semantic, but costs tokens and, if the judge is the teacher, biases the eval; the output flags this). One app cannot prove the lessons generalize — held-out apps are the real test.</p>
+</div>
+
+<div class="section">
+<h2>2. Handling a real app with 1M+ LOC</h2>
+<p>The static slice already ships the <em>shape</em> of the answer: <strong>don't send the whole app to the model — retrieve the attack surface.</strong> Current ingest ranks files by sensitive-API signals (WebView, Intent, Provider, crypto, secrets) and packs them into token-budgeted chunks, dropping framework/generated noise (<code>R.java</code>, <code>androidx/**</code>). At 1M+ LOC I'd scale this along four axes:</p>
+<ol>
+<li><strong>Pre-filter to the attack surface, not the codebase.</strong> Parse the manifest first; the exported components (activities, services, providers, receivers) and their reachable call-graph are a few % of the code and contain most findings. Use a lightweight parser (tree-sitter / <code>jadx</code> symbol index) to pull only exported entry points + transitive callees + sink functions (<code>loadUrl</code>, <code>query</code>, <code>exec</code>, crypto, file I/O).</li>
+<li><strong>Retrieval over brute force.</strong> Index every function (embeddings + a grep/AST layer for sink patterns). For each weakness class, retrieve the top-k candidate functions and scan those, instead of every chunk. This turns cost from O(LOC) into O(attack surface).</li>
+<li><strong>Two-tier triage.</strong> Cheap pass (the student / a grep-rule layer) flags suspicious regions across the whole app; the expensive teacher only audits flagged regions. Same teacher/student split, used for cost control.</li>
+<li><strong>Parallelism + caching + incremental scans.</strong> Chunks are independent, so fan out concurrently; cache results by file hash and, in CI, only rescan changed files. Map-reduce the per-chunk findings, dedupe, then a single reduce pass for cross-file issues.</li>
+</ol>
+<p>Determinism (temperature 0), per-file provenance, and dedup by <code>(category, file, component)</code> keep results stable and reviewable at scale.</p>
+</div>
+
+<div class="section">
+<h2>3. Dynamic analysis (write, don't build)</h2>
+<p><strong>Goal.</strong> Extend the static harness into a dynamic scan driven by an AI agent against an app with a live backend. The agent installs the app on an instrumented device, navigates it, fires crafted inputs at the attack surface the static pass identified, and <strong>confirms</strong> vulnerabilities from observed runtime behavior.</p>
+<p><strong>One bug type static cannot catch:</strong> a <strong>server-side access-control / IDOR</strong> flaw — e.g. <code>GET /api/orders/{id}</code> returning another user's order. Static sees the client call but not that the backend fails to authorize it; only a live request with user A's token reading user B's object proves it. (Others: auth-token replay, insecure TLS actually negotiated on the wire, runtime secret leakage.)</p>
+<p><strong>Confirming a vulnerability (not just a crash).</strong> Each probe ships with an <strong>oracle</strong> — a pre-stated, checkable success condition — so "it happened" is distinguished from "it crashed." Examples: for IDOR, victim-owned data appears in a response to the attacker's session; for an exported-activity redirect, a canary URL loads in the WebView and our listener server receives the callback; for insecure logging, the credential string appears in <code>logcat</code>; for a provider leak, <code>content://</code> returns bytes of a protected file. The agent asserts the oracle, captures the proof (HTTP transcript, screenshot, logcat, intent dump), and only then marks the finding confirmed. A crash with no oracle hit is a stability bug, logged separately.</p>
+<p><strong>Reaching the right screen.</strong> Bugs sit behind logins and multi-tap flows. The agent drives the UI via an accessibility/UI-automation tree (Appium/UIAutomator) rather than pixels, seeded with known credentials and a per-screen goal. It maintains a screen graph (state = view hierarchy hash), does goal-directed navigation (LLM picks the next action toward the target component), and falls back to deep-links/intents from the manifest to jump straight to a target activity. <strong>Coverage</strong> = exported components exercised, screens/states visited, and manifest deep-links reached — reported as a fraction of the statically enumerated attack surface, which ties dynamic back to static.</p>
+<p><strong>Scale.</strong> Emulators are slow, flaky, and need a clean state per run. Run <strong>ephemeral, snapshot-restored</strong> emulators (or hosted device farms) in a container/K8s pool; boot from a pre-warmed snapshot with the app + certs pre-installed so each run resets in seconds. Shard apps/probes across the pool, cap wall-clock per probe, auto-retry flaky runs, and record everything for replay so a confirmed finding is reproducible.</p>
+<p><strong>SSL pinning.</strong> To see traffic, route through an intercepting proxy (mitmproxy) with its CA trusted, and defeat pinning via a Frida script that hooks <code>TrustManager</code>/<code>OkHttp CertificatePinner</code>/<code>WebViewClient</code>. The two–three things most likely to break: (1) <strong>Frida detection / hook brittleness</strong> — the hook set lags app/OkHttp versions and root/Frida detection blocks it; (2) <strong>non-HTTP or certificate-transparency / native (BoringSSL) pinning</strong> the Java hooks miss; and (3) <strong>network-security-config / cleartext restrictions</strong> plus the Android 7+ user-CA distrust, which require a system-CA image or a <code>networkSecurityConfig</code> patch.</p>
+
+<h3>Architecture diagram</h3>
+<pre class="diagram">
+                         ┌─────────────────────────────────────────┐
+                         │            Orchestrator (K8s)            │
+                         │  queue · scheduling · run provenance     │
+                         └───────────────┬──────────────────────────┘
+          static findings                │  attack-surface + probes
+          (apkscan, §1-2) ───────────────┤
+                                         ▼
+              ┌───────────────── Dynamic Agent (LLM) ─────────────────┐
+              │  plan → navigate → inject probe → read oracle → verify │
+              └───┬───────────────┬───────────────┬───────────────┬───┘
+                  │ UIAutomator   │ intents/       │ crafted       │ assert
+                  │ /Appium       │ deep-links     │ HTTP + canary │ oracle
+                  ▼               ▼                ▼               ▼
+        ┌───────────────── Ephemeral Emulator (snapshot) ───────────────┐
+        │  app under test │ Frida (unpin) │ accessibility tree          │
+        └──────┬───────────────────────────────┬────────────────────────┘
+               │ device traffic                 │ logcat / screenshots
+               ▼                                ▼
+        mitmproxy (trusted CA) ───────►  Evidence store (transcripts,
+               │                              screenshots, oracle hits)
+               ▼
+          Live backend  ◄──── confirms server-side bugs (IDOR, authz)
+</pre>
+</div>
+
+<div class="section">
+<h2>4. Which models, and why</h2>
+<table>
+<tr><th>Role</th><th>Model (used)</th><th>Why</th></tr>
+<tr><td><strong>Teacher</strong> (frontier)</td><td><code>gemini-3.6-flash</code></td><td>Strongest model the Google AI Studio <strong>free tier</strong> actually serves. <code>gemini-*-pro</code> returns 429 (billing-gated) and <code>gemini-2.5-*</code> 404s for new keys ("no longer available to new users"), so flash-class is the real free-tier ceiling. Strong code reasoning, cheap.</td></tr>
+<tr><td><strong>Student</strong> (open-model stand-in)</td><td><code>gemini-3.1-flash-lite</code></td><td>A weaker, cheaper lite model so the recall <em>lift</em> has headroom, and the loop runs with a <strong>single key</strong>.</td></tr>
+<tr><td><strong>Student</strong> (faithful, 1-line switch)</td><td><code>llama-3.1-8b-instant</code> on <strong>Groq</strong></td><td>The assignment's intended "open model." Groq's free tier needs no card; a genuinely small model gives a wider teacher→student gap and a more robust lift. Switch: <code>--set models.student.provider=groq --set models.student.model=llama-3.1-8b-instant</code>.</td></tr>
+<tr><td><strong>Judge</strong> (optional)</td><td>teacher model</td><td>Only for <code>strategy: llm_judge</code>; flagged as biased when judge = teacher.</td></tr>
+</table>
+<p>The model layer is behind a one-method <code>ModelClient</code> interface + registry, so swapping or adding a provider (OpenAI, Anthropic, another open model) is a config change, not a code change — directly serving the extensibility criterion.</p>
+<p><strong>Honest note on the model pairing.</strong> On the free tier both teacher and student end up flash-class, a <em>narrow</em> capability gap. That makes the per-run lift small and noisy (see §5). The faithful fix is a genuinely weaker open student on Groq; the harness supports it as a one-line config change, and held-out apps are the real test of whether the lessons generalize.</p>
+</div>
+
+<div class="section">
+<h2>5. Recall — before vs. after (measured)</h2>
+<p>Measured on InsecureShop (19 ground-truth vulns), <code>taxonomy</code> match strategy, teacher <code>gemini-3.6-flash</code>, student <code>gemini-3.1-flash-lite</code>. Representative <strong>valid</strong> run (<code>runs/run-20261122-122343</code>):</p>
+<table>
+<tr><th>Model</th><th>Recall</th><th>Findings</th><th>Precision</th></tr>
+<tr><td>Teacher</td><td>36.8% (7/19)</td><td>7</td><td>1.00</td></tr>
+<tr><td>Student — before lessons</td><td>42.1% (8/19)</td><td>13</td><td>0.62</td></tr>
+<tr><td>Student — after lessons</td><td><strong>52.6% (10/19)</strong></td><td>14</td><td>0.71</td></tr>
+</table>
+<p><strong>Recall lift: +10.5% absolute (+25% relative)</strong> — and precision <em>also</em> rose (0.62 → 0.71), so the gain is real coverage, not just more guessing. The student newly caught <strong>GT-03</strong> (weak host validation), <strong>GT-05</strong> (intent redirection), and <strong>GT-18</strong> (insecure storage) — the first two map directly to distilled lessons; GT-18 survived because the lessons were framed to <em>augment</em>, not replace, the student's own analysis.</p>
+<h3>Honesty: variance and invalid runs</h3>
+<p>This is <strong>one app with two flash-class models</strong>, and the signal is noisy:</p>
+<ul>
+<li><strong>Variance.</strong> Across repeats the per-run lift ranged from roughly −5% (before the fixes below) to +10.5%. A single run can mislead, so the harness supports <code>eval.repeats: N</code> — it reruns the student baseline + lessoned scans N times and reports the <strong>mean lift plus per-run samples</strong> (teacher scan + distillation run once). Use N≥3 for a defensible headline number.</li>
+<li><strong>Invalid runs are flagged.</strong> If the teacher is rate-limited and returns 0 findings, no lessons exist and <code>after == before</code> trivially (a fake "0% lift"). The pipeline marks such runs <code>valid_run: false</code> and the report prints an <strong>INVALID RUN</strong> banner, so a quota-killed run is never reported as a real result.</li>
+<li><strong>Two fixes that turned a −5% run into +10.5%.</strong> (1) The lesson <em>generality guard</em> was over-eager — it discarded general, high-value lessons (SSL-error bypass, cleartext traffic, cloud credentials) merely for mentioning <code>AndroidManifest.xml</code> or prose like "SSL/TLS". It now rejects only truly app-specific tokens (line numbers, <code>*.java/.kt/.smali</code> files, the app's own class/package names). (2) Injecting lessons as a <em>checklist</em> made the weak student tunnel-vision and drop findings it had made on its own; reframing the lessons to "do your full analysis first, then also check these" recovered them.</li>
+</ul>
+<p><strong>Caveat (as the brief asks):</strong> one app cannot prove the lessons generalize — a narrow model gap and category-level matching can both flatter or understate the result. The real evidence is held-out apps, which we'd discuss in the interview.</p>
+</div>
+
+</body>
+</html>
