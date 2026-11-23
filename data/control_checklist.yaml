@@ -1,0 +1,18 @@
+# CONTROL checklist for the ablation requested by reviewers.
+#
+# This is a GENERIC, standard Android security review checklist (OWASP MASVS /
+# Mobile Top 10 flavored). It is NOT derived from any app's findings. It is used
+# in place of the distilled lessons in the "control" arm of `apkscan experiment`
+# to test whether the recall lift comes from the SPECIFIC distilled lessons or
+# merely from prepending any security checklist of similar length.
+#
+# Length is kept comparable to a typical distilled-lesson set (~6-9 items).
+checklist:
+  - "Review every exported component (activity, service, receiver, provider) and confirm it enforces an appropriate permission."
+  - "Validate and sanitize all data received from Intents, extras, and deep links before use."
+  - "Ensure sensitive data (credentials, tokens, PII) is encrypted at rest and never written to logs."
+  - "Verify TLS certificate and hostname validation is never disabled or bypassed."
+  - "Check WebView configuration for unsafe settings such as JavaScript, file access, or universal access from file URLs."
+  - "Audit ContentProviders and FileProviders for over-broad access and missing access control."
+  - "Look for hardcoded secrets, credentials, API keys, or cloud configuration in code and resources."
+  - "Ensure broadcasts and intents carrying sensitive data are explicit and permission-protected, not implicit."

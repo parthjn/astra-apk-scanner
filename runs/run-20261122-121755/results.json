@@ -1,0 +1,615 @@
+{
+  "app": "./data/ground_truth/insecureshop.yaml",
+  "models": {
+    "teacher": "gemini:gemini-3.6-flash",
+    "student": "gemini:gemini-3.1-flash-lite"
+  },
+  "match_strategy": "taxonomy",
+  "recall": {
+    "teacher": 0.6316,
+    "student_before": 0.5263,
+    "student_after": 0.4737,
+    "lift_absolute": -0.0526,
+    "lift_relative": -0.1
+  },
+  "matches": {
+    "teacher": {
+      "strategy": "taxonomy",
+      "recall": 0.6316,
+      "precision": 0.8571,
+      "matched_gt": [
+        "GT-01",
+        "GT-02",
+        "GT-03",
+        "GT-05",
+        "GT-09",
+        "GT-10",
+        "GT-12",
+        "GT-14",
+        "GT-15",
+        "GT-16",
+        "GT-17",
+        "GT-19"
+      ],
+      "unmatched_gt": [
+        "GT-04",
+        "GT-06",
+        "GT-07",
+        "GT-08",
+        "GT-11",
+        "GT-13",
+        "GT-18"
+      ],
+      "n_false_positives": 2,
+      "total_gt": 19
+    },
+    "student_before": {
+      "strategy": "taxonomy",
+      "recall": 0.5263,
+      "precision": 0.6667,
+      "matched_gt": [
+        "GT-01",
+        "GT-02",
+        "GT-04",
+        "GT-09",
+        "GT-14",
+        "GT-15",
+        "GT-16",
+        "GT-17",
+        "GT-18",
+        "GT-19"
+      ],
+      "unmatched_gt": [
+        "GT-03",
+        "GT-05",
+        "GT-06",
+        "GT-07",
+        "GT-08",
+        "GT-10",
+        "GT-11",
+        "GT-12",
+        "GT-13"
+      ],
+      "n_false_positives": 5,
+      "total_gt": 19
+    },
+    "student_after": {
+      "strategy": "taxonomy",
+      "recall": 0.4737,
+      "precision": 0.6429,
+      "matched_gt": [
+        "GT-01",
+        "GT-02",
+        "GT-05",
+        "GT-09",
+        "GT-14",
+        "GT-15",
+        "GT-16",
+        "GT-17",
+        "GT-19"
+      ],
+      "unmatched_gt": [
+        "GT-03",
+        "GT-04",
+        "GT-06",
+        "GT-07",
+        "GT-08",
+        "GT-10",
+        "GT-11",
+        "GT-12",
+        "GT-13",
+        "GT-18"
+      ],
+      "n_false_positives": 5,
+      "total_gt": 19
+    }
+  },
+  "lessons": {
+    "accepted": [
+      "Components that extract nested Intent objects from incoming Intent extras (e.g., via getParcelableExtra) and pass them directly to startActivity enable Intent Redirection attacks; search for getParcelableExtra followed by startActivity in exported activities.",
+      "Loading URLs directly from untrusted Intent extras into a WebView allows malicious apps to force arbitrary web pages to load; search for WebView.loadUrl() receiving parameters from getIntent() or getExtras() without validation.",
+      "Using loose suffix checks like endsWith() for host validation in deep links or URLs allows attackers to register domain names that bypass validation; look for URL host validation using endsWith() instead of strict URI host comparison.",
+      "Enabling setAllowUniversalAccessFromFileURLs(true) in WebView settings permits local file-based scripts to access cross-origin resources and private app files; search for setAllowUniversalAccessFromFileURLs(true).",
+      "Logging sensitive user information such as passwords, tokens, or credentials via system logging APIs exposes data to system logs; search for Log methods passing authentication parameters.",
+      "Sending implicit broadcasts containing sensitive payload data without specifying explicit target packages or requiring custom permissions permits any installed app to intercept data; search for sendBroadcast calls lacking target package definitions.",
+      "Exported Content Providers that return sensitive user data (such as credentials from SharedPreferences) in query() responses allow unauthorized third-party apps to access sensitive app data; inspect exported content providers and their query implementations.",
+      "Passing untrusted incoming intents back to caller components via setResult(RESULT_OK, getIntent()) enables intent reflection vulnerabilities; check for setResult calls utilizing raw getIntent() objects.",
+      "Storing hardcoded authentication credentials directly in application source code makes them susceptible to reverse engineering; search for static credential assignments and plaintext secret key mappings."
+    ],
+    "rejected_as_instance_specific": [
+      "Hardcoding sensitive cloud identifier strings or API credentials (such as AWS Identity Pool IDs) in resource files exposes backend infrastructure to unauthorized access; search for cloud provider resource identifiers in XML configurations.",
+      "Setting android:usesCleartextTraffic=\"true\" in the application manifest allows unencrypted HTTP communications app-wide, exposing network traffic to Man-in-the-Middle (MitM) attacks; check AndroidManifest.xml for usesCleartextTraffic flags.",
+      "Overriding onReceivedSslError in custom WebViewClients and calling handler.proceed() disables SSL/TLS validation, allowing MitM attackers to intercept or modify encrypted traffic; look for handler.proceed() inside onReceivedSslError callbacks."
+    ]
+  },
+  "counts": {
+    "teacher_findings": 14,
+    "student_findings_before": 15,
+    "student_findings_after": 14
+  },
+  "findings": {
+    "teacher": [
+      {
+        "vuln_type": "Intent Redirection Vulnerability",
+        "severity": "high",
+        "evidence": "Intent intent = (Intent) getIntent().getParcelableExtra(\"extra_intent\"); if (intent != null) { startActivity(intent); finish(); return; }",
+        "file": "sources/com/insecureshop/WebView2Activity.java",
+        "line": 51,
+        "component": "com.insecureshop.WebView2Activity",
+        "confidence": 1.0,
+        "category": "intent_redirection",
+        "source_model": "teacher"
+      },
+      {
+        "vuln_type": "WebView loads arbitrary untrusted URL",
+        "severity": "high",
+        "evidence": "webview.loadUrl(extras2 != null ? extras2.getString(\"url\") : null);",
+        "file": "sources/com/insecureshop/WebView2Activity.java",
+        "line": 89,
+        "component": "com.insecureshop.WebView2Activity",
+        "confidence": 1.0,
+        "category": "webview_arbitrary_url_load",
+        "source_model": "teacher"
+      },
+      {
+        "vuln_type": "Weak host validation in deep link handler",
+        "severity": "medium",
+        "evidence": "StringsKt.endsWith$default(queryParameter2, \"insecureshopapp.com\", false, 2, (Object) null)",
+        "file": "sources/com/insecureshop/WebViewActivity.java",
+        "line": 81,
+        "component": "com.insecureshop.WebViewActivity",
+        "confidence": 0.95,
+        "category": "weak_host_validation",
+        "source_model": "teacher"
+      },
+      {
+        "vuln_type": "AllowUniversalAccessFromFileURLs enabled in WebView",
+        "severity": "high",
+        "evidence": "settings4.setAllowUniversalAccessFromFileURLs(true);",
+        "file": "sources/com/insecureshop/WebView2Activity.java",
+        "line": 63,
+        "component": "com.insecureshop.WebView2Activity",
+        "confidence": 1.0,
+        "category": "insecure_webview_settings",
+        "source_model": "teacher"
+      },
+      {
+        "vuln_type": "Insecure logging of sensitive login credentials",
+        "severity": "medium",
+        "evidence": "Log.d(\"userName\", strValueOf); Log.d(\"password\", strValueOf2);",
+        "file": "sources/com/insecureshop/LoginActivity.java",
+        "line": 78,
+        "component": "com.insecureshop.LoginActivity",
+        "confidence": 1.0,
+        "category": "insecure_logging",
+        "source_model": "teacher"
+      },
+      {
+        "vuln_type": "Hardcoded AWS Identity Pool ID",
+        "severity": "medium",
+        "evidence": "<string name=\"aws_Identity_pool_ID\">us-east-1:7e9426f7-42af-4717-8689-00a9a4b65c1c</string>",
+        "file": "resources/res/values/strings.xml",
+        "line": 47,
+        "component": null,
+        "confidence": 0.9,
+        "category": "cloud_credential_misconfig",
+        "source_model": "teacher"
+      },
+      {
+        "vuln_type": "Cleartext HTTP traffic allowed",
+        "severity": "medium",
+        "evidence": "android:usesCleartextTraffic=\"true\"",
+        "file": "resources/AndroidManifest.xml",
+        "line": 22,
+        "component": null,
+        "confidence": 1.0,
+        "category": "cleartext_traffic",
+        "source_model": "teacher"
+      },
+      {
+        "vuln_type": "SSL Certificate Validation Bypass",
+        "severity": "high",
+        "evidence": "handler.proceed() is invoked in onReceivedSslError, ignoring all SSL certificate validation errors.",
+        "file": "sources/com/insecureshop/util/CustomWebViewClient.java",
+        "line": 16,
+        "component": null,
+        "confidence": 1.0,
+        "category": "ssl_validation_bypass",
+        "source_model": "teacher"
+      },
+      {
+        "vuln_type": "Implicit Broadcast Exposes Sensitive Data",
+        "severity": "high",
+        "evidence": "sendBroadcast(intent) sends an implicit broadcast with action 'com.insecureshop.action.BROADCAST' carrying user credentials (username and password).",
+        "file": "sources/com/insecureshop/AboutUsActivity.java",
+        "line": 79,
+        "component": "com.insecureshop.AboutUsActivity",
+        "confidence": 1.0,
+        "category": "implicit_intent_sensitive_data",
+        "source_model": "teacher"
+      },
+      {
+        "vuln_type": "Content Provider Exposes User Credentials",
+        "severity": "high",
+        "evidence": "The query() implementation returns a MatrixCursor containing plaintext username and password from shared preferences to callers matching URI 'com.insecureshop.provider/insecure'.",
+        "file": "sources/com/insecureshop/contentProvider/InsecureShopProvider.java",
+        "line": 76,
+        "component": "com.insecureshop.contentProvider.InsecureShopProvider",
+        "confidence": 1.0,
+        "category": "insecure_content_provider",
+        "source_model": "teacher"
+      },
+      {
+        "vuln_type": "Content Provider Exposes User Credentials",
+        "severity": "high",
+        "evidence": "The query() implementation returns a MatrixCursor containing plaintext username and password from shared preferences to callers matching URI 'com.insecureshop.file_provider/insecure'.",
+        "file": "sources/com/insecureshop/contentProvider/InsecureshopFileProvider.java",
+        "line": 76,
+        "component": "com.insecureshop.contentProvider.InsecureshopFileProvider",
+        "confidence": 1.0,
+        "category": "insecure_content_provider",
+        "source_model": "teacher"
+      },
+      {
+        "vuln_type": "Implicit Broadcast Sending",
+        "severity": "medium",
+        "evidence": "context.sendBroadcast(intent); sends an implicit broadcast with intent action 'com.insecureshop.action.PRODUCT_DETAIL' containing product URLs without specifying a package name or permission, allowing any app on the device to receive it.",
+        "file": "sources/com/insecureshop/ProductAdapter.java",
+        "line": 124,
+        "component": null,
+        "confidence": 0.95,
+        "category": "insecure_broadcast_receiver",
+        "source_model": "teacher"
+      },
+      {
+        "vuln_type": "Insecure setResult Intent Reflection",
+        "severity": "high",
+        "evidence": "setResult(-1, getIntent()); returns the incoming intent back to the caller activity without validation. If invoked via startActivityForResult, an attacker can extract intent extras or hijack intent execution context.",
+        "file": "sources/com/insecureshop/ResultActivity.java",
+        "line": 43,
+        "component": "com.insecureshop.ResultActivity",
+        "confidence": 0.95,
+        "category": "insecure_setresult",
+        "source_model": "teacher"
+      },
+      {
+        "vuln_type": "Hardcoded user credentials",
+        "severity": "high",
+        "evidence": "map.put(\"shopuser\", \"!ns3csh0p\");",
+        "file": "sources/com/insecureshop/util/Util.java",
+        "line": 44,
+        "component": null,
+        "confidence": 1.0,
+        "category": "hardcoded_credentials",
+        "source_model": "teacher"
+      }
+    ],
+    "student_before": [
+      {
+        "vuln_type": "exported_component_no_permission",
+        "severity": "high",
+        "evidence": "<activity android:name=\"com.insecureshop.AboutUsActivity\" android:exported=\"true\"/>",
+        "file": "resources/AndroidManifest.xml",
+        "line": 56,
+        "component": "activity",
+        "confidence": 1.0,
+        "category": "exported_component_no_permission",
+        "source_model": "student_before"
+      },
+      {
+        "vuln_type": "insecure_content_provider",
+        "severity": "high",
+        "evidence": "<provider android:name=\"com.insecureshop.contentProvider.InsecureShopProvider\" android:readPermission=\"com.insecureshop.permission.READ\" android:exported=\"true\" android:authorities=\"com.insecureshop.provider\"/>",
+        "file": "resources/AndroidManifest.xml",
+        "line": 77,
+        "component": "provider",
+        "confidence": 1.0,
+        "category": "insecure_content_provider",
+        "source_model": "student_before"
+      },
+      {
+        "vuln_type": "insecure_webview_settings",
+        "severity": "high",
+        "evidence": "settings5.setAllowUniversalAccessFromFileURLs(true);",
+        "file": "sources/com/insecureshop/PrivateActivity.java",
+        "line": 65,
+        "component": "activity",
+        "confidence": 1.0,
+        "category": "insecure_webview_settings",
+        "source_model": "student_before"
+      },
+      {
+        "vuln_type": "insecure_webview_settings",
+        "severity": "high",
+        "evidence": "settings5.setAllowUniversalAccessFromFileURLs(true);",
+        "file": "sources/com/insecureshop/WebView2Activity.java",
+        "line": 65,
+        "component": "activity",
+        "confidence": 1.0,
+        "category": "insecure_webview_settings",
+        "source_model": "student_before"
+      },
+      {
+        "vuln_type": "insecure_webview_settings",
+        "severity": "high",
+        "evidence": "settings5.setAllowUniversalAccessFromFileURLs(true);",
+        "file": "sources/com/insecureshop/WebViewActivity.java",
+        "line": 65,
+        "component": "activity",
+        "confidence": 1.0,
+        "category": "insecure_webview_settings",
+        "source_model": "student_before"
+      },
+      {
+        "vuln_type": "webview_arbitrary_url_load",
+        "severity": "critical",
+        "evidence": "webview.loadUrl(intent3.getDataString());",
+        "file": "sources/com/insecureshop/WebView2Activity.java",
+        "line": 73,
+        "component": "activity",
+        "confidence": 1.0,
+        "category": "webview_arbitrary_url_load",
+        "source_model": "student_before"
+      },
+      {
+        "vuln_type": "insecure_logging",
+        "severity": "medium",
+        "evidence": "Log.d(\"userName\", strValueOf);",
+        "file": "sources/com/insecureshop/LoginActivity.java",
+        "line": 76,
+        "component": "activity",
+        "confidence": 1.0,
+        "category": "insecure_logging",
+        "source_model": "student_before"
+      },
+      {
+        "vuln_type": "arbitrary_code_execution",
+        "severity": "critical",
+        "evidence": "packageContext.getClassLoader().loadClass(\"com.insecureshopapp.MainInterface\").getMethod(\"getInstance\", Context.class).invoke(null, this);",
+        "file": "sources/com/insecureshop/LoginActivity.java",
+        "line": 95,
+        "component": "activity",
+        "confidence": 0.9,
+        "category": "arbitrary_code_execution",
+        "source_model": "student_before"
+      },
+      {
+        "vuln_type": "insecure_content_provider",
+        "severity": "high",
+        "evidence": "The query method returns sensitive user credentials (username and password) from SharedPreferences without any permission checks or authentication.",
+        "file": "sources/com/insecureshop/contentProvider/InsecureShopProvider.java",
+        "line": 95,
+        "component": "provider",
+        "confidence": 1.0,
+        "category": "insecure_content_provider",
+        "source_model": "student_before"
+      },
+      {
+        "vuln_type": "insecure_content_provider",
+        "severity": "high",
+        "evidence": "The query method returns sensitive user credentials (username and password) from SharedPreferences without any permission checks or authentication.",
+        "file": "sources/com/insecureshop/contentProvider/InsecureshopFileProvider.java",
+        "line": 95,
+        "component": "provider",
+        "confidence": 1.0,
+        "category": "insecure_content_provider",
+        "source_model": "student_before"
+      },
+      {
+        "vuln_type": "ssl_validation_bypass",
+        "severity": "critical",
+        "evidence": "handler.proceed() is called inside onReceivedSslError, which ignores all SSL certificate errors and makes the WebView vulnerable to Man-in-the-Middle attacks.",
+        "file": "sources/com/insecureshop/util/CustomWebViewClient.java",
+        "line": 20,
+        "component": null,
+        "confidence": 1.0,
+        "category": "ssl_validation_bypass",
+        "source_model": "student_before"
+      },
+      {
+        "vuln_type": "insecure_broadcast_receiver",
+        "severity": "high",
+        "evidence": "context.sendBroadcast(intent); // Sends an implicit broadcast with sensitive data (product URL) without specifying a receiver permission, allowing other apps to intercept it.",
+        "file": "sources/com/insecureshop/ProductAdapter.java",
+        "line": 118,
+        "component": "activity",
+        "confidence": 0.9,
+        "category": "insecure_broadcast_receiver",
+        "source_model": "student_before"
+      },
+      {
+        "vuln_type": "insecure_setresult",
+        "severity": "medium",
+        "evidence": "setResult(-1, getIntent()); // Returns the entire incoming intent back to the calling activity, which may contain sensitive data or lead to intent redirection if the caller is malicious.",
+        "file": "sources/com/insecureshop/ResultActivity.java",
+        "line": 36,
+        "component": "activity",
+        "confidence": 0.8,
+        "category": "insecure_setresult",
+        "source_model": "student_before"
+      },
+      {
+        "vuln_type": "hardcoded_credentials",
+        "severity": "critical",
+        "evidence": "map.put(\"shopuser\", \"!ns3csh0p\");",
+        "file": "sources/com/insecureshop/util/Util.java",
+        "line": 36,
+        "component": null,
+        "confidence": 1.0,
+        "category": "hardcoded_credentials",
+        "source_model": "student_before"
+      },
+      {
+        "vuln_type": "insecure_data_storage",
+        "severity": "medium",
+        "evidence": "cartAdapter.setCartList(Util.INSTANCE.getCartProduct(this));",
+        "file": "sources/com/insecureshop/CartListActivity.java",
+        "line": 55,
+        "component": "activity",
+        "confidence": 0.8,
+        "category": "insecure_data_storage",
+        "source_model": "student_before"
+      }
+    ],
+    "student_after": [
+      {
+        "vuln_type": "insecure_webview_settings",
+        "severity": "high",
+        "evidence": "settings5.setAllowUniversalAccessFromFileURLs(true);",
+        "file": "sources/com/insecureshop/PrivateActivity.java",
+        "line": 65,
+        "component": "activity",
+        "confidence": 1.0,
+        "category": "insecure_webview_settings",
+        "source_model": "student_after"
+      },
+      {
+        "vuln_type": "insecure_webview_settings",
+        "severity": "high",
+        "evidence": "settings5.setAllowUniversalAccessFromFileURLs(true);",
+        "file": "sources/com/insecureshop/WebView2Activity.java",
+        "line": 65,
+        "component": "activity",
+        "confidence": 1.0,
+        "category": "insecure_webview_settings",
+        "source_model": "student_after"
+      },
+      {
+        "vuln_type": "insecure_webview_settings",
+        "severity": "high",
+        "evidence": "settings4.setAllowUniversalAccessFromFileURLs(true);",
+        "file": "sources/com/insecureshop/WebViewActivity.java",
+        "line": 55,
+        "component": "activity",
+        "confidence": 1.0,
+        "category": "insecure_webview_settings",
+        "source_model": "student_after"
+      },
+      {
+        "vuln_type": "webview_arbitrary_url_load",
+        "severity": "high",
+        "evidence": "webview.loadUrl(extras2 != null ? extras2.getString(\"url\") : null);",
+        "file": "sources/com/insecureshop/WebView2Activity.java",
+        "line": 105,
+        "component": "activity",
+        "confidence": 0.9,
+        "category": "webview_arbitrary_url_load",
+        "source_model": "student_after"
+      },
+      {
+        "vuln_type": "intent_redirection",
+        "severity": "critical",
+        "evidence": "Intent intent = (Intent) getIntent().getParcelableExtra(\"extra_intent\"); startActivity(intent);",
+        "file": "sources/com/insecureshop/WebView2Activity.java",
+        "line": 46,
+        "component": "activity",
+        "confidence": 1.0,
+        "category": "intent_redirection",
+        "source_model": "student_after"
+      },
+      {
+        "vuln_type": "insecure_logging",
+        "severity": "medium",
+        "evidence": "Log.d(\"password\", strValueOf2);",
+        "file": "sources/com/insecureshop/LoginActivity.java",
+        "line": 78,
+        "component": "activity",
+        "confidence": 1.0,
+        "category": "insecure_logging",
+        "source_model": "student_after"
+      },
+      {
+        "vuln_type": "exported_component_no_permission",
+        "severity": "medium",
+        "evidence": "<activity android:name=\"com.insecureshop.WebView2Activity\" android:exported=\"true\" /> (Implicitly exported due to intent-filter)",
+        "file": "resources/AndroidManifest.xml",
+        "line": 55,
+        "component": "activity",
+        "confidence": 0.9,
+        "category": "exported_component_no_permission",
+        "source_model": "student_after"
+      },
+      {
+        "vuln_type": "insecure_content_provider",
+        "severity": "critical",
+        "evidence": "The query() method retrieves sensitive user credentials (username and password) from SharedPreferences and returns them in a Cursor, which can be accessed by any other app if the provider is exported.",
+        "file": "sources/com/insecureshop/contentProvider/InsecureShopProvider.java",
+        "line": 105,
+        "component": "provider",
+        "confidence": 1.0,
+        "category": "insecure_content_provider",
+        "source_model": "student_after"
+      },
+      {
+        "vuln_type": "insecure_content_provider",
+        "severity": "critical",
+        "evidence": "The query() method retrieves sensitive user credentials (username and password) from SharedPreferences and returns them in a Cursor, which can be accessed by any other app if the provider is exported.",
+        "file": "sources/com/insecureshop/contentProvider/InsecureshopFileProvider.java",
+        "line": 105,
+        "component": "provider",
+        "confidence": 1.0,
+        "category": "insecure_content_provider",
+        "source_model": "student_after"
+      },
+      {
+        "vuln_type": "ssl_validation_bypass",
+        "severity": "high",
+        "evidence": "The onReceivedSslError method calls handler.proceed() unconditionally, which ignores all SSL certificate errors and makes the WebView vulnerable to Man-in-the-Middle (MitM) attacks.",
+        "file": "sources/com/insecureshop/util/CustomWebViewClient.java",
+        "line": 20,
+        "component": null,
+        "confidence": 1.0,
+        "category": "ssl_validation_bypass",
+        "source_model": "student_after"
+      },
+      {
+        "vuln_type": "insecure_broadcast_receiver",
+        "severity": "medium",
+        "evidence": "The onSendData method sends a broadcast containing sensitive user credentials (username and password) without specifying a target package or requiring a permission, allowing any malicious app to intercept this data.",
+        "file": "sources/com/insecureshop/AboutUsActivity.java",
+        "line": 85,
+        "component": "activity",
+        "confidence": 0.9,
+        "category": "insecure_broadcast_receiver",
+        "source_model": "student_after"
+      },
+      {
+        "vuln_type": "insecure_setresult",
+        "severity": "medium",
+        "evidence": "setResult(-1, getIntent());",
+        "file": "sources/com/insecureshop/ResultActivity.java",
+        "line": 36,
+        "component": "activity",
+        "confidence": 0.9,
+        "category": "insecure_setresult",
+        "source_model": "student_after"
+      },
+      {
+        "vuln_type": "insecure_broadcast_receiver",
+        "severity": "medium",
+        "evidence": "context.sendBroadcast(intent);",
+        "file": "sources/com/insecureshop/ProductAdapter.java",
+        "line": 115,
+        "component": null,
+        "confidence": 0.8,
+        "category": "insecure_broadcast_receiver",
+        "source_model": "student_after"
+      },
+      {
+        "vuln_type": "hardcoded_credentials",
+        "severity": "critical",
+        "evidence": "map.put(\"shopuser\", \"!ns3csh0p\");",
+        "file": "sources/com/insecureshop/util/Util.java",
+        "line": 45,
+        "component": null,
+        "confidence": 1.0,
+        "category": "hardcoded_credentials",
+        "source_model": "student_after"
+      }
+    ]
+  },
+  "meta": {
+    "decompiled_path": "./data/decompiled/insecureshop",
+    "files_scanned": 192
+  }
+}

@@ -1,0 +1,223 @@
+{
+  "app": "./data/ground_truth/insecurebankv2.yaml",
+  "models": {
+    "teacher": "gemini-3.6-flash",
+    "student": "gemini:gemini-3.1-flash-lite"
+  },
+  "match_strategy": "taxonomy",
+  "repeats": 3,
+  "lessons_source": "loaded:experiment.json",
+  "teacher": {
+    "recall": null,
+    "n_findings": 0
+  },
+  "lessons": {
+    "accepted": [
+      "Exported activities or receivers that extract a nested Intent from extras and pass it directly to startActivity enable Intent Redirection vulnerabilities; search for getParcelableExtra or getIntent calls followed by startActivity.",
+      "Validating domain URLs using string suffix methods like endsWith() allows host verification bypass via rogue domains registered with matching suffixes; search for host or URL checks relying on endsWith() instead of strict Uri parsing.",
+      "Enabling setAllowUniversalAccessFromFileURLs(true) on WebViews allows local HTML or JavaScript files to bypass same-origin policies and read sensitive local files or cross-origin data; search for setAllowUniversalAccessFromFileURLs or setAllowFileAccessFromFileURLs set to true.",
+      "Logging sensitive information such as usernames, passwords, or session tokens via Android Log functions exposes secrets to system log output; search for Log calls containing credential variable names.",
+      "Creating package contexts for external app packages using createPackageContext() and loading classes dynamically via reflection can lead to arbitrary code execution; search for createPackageContext combined with dynamic ClassLoader reflection calls.",
+      "Embedding cloud identity pool IDs, secret keys, or API tokens in resource XML files or code exposes backend resources to unauthorized access via decompilation; search string resources and source code for embedded service credentials.",
+      "Overriding onReceivedSslError in a custom WebViewClient to call handler.proceed() disables SSL certificate validation and enables MitM interception; search for WebViewClient implementations calling handler.proceed().",
+      "Exporting ContentProvider components whose query() method returns sensitive stored credentials via Cursor objects exposes data to unauthorized third-party applications; audit exported content providers for sensitive data exposure in query().",
+      "Sending implicit broadcasts containing sensitive extras allows malicious applications listening to the intent action to intercept the payload; search for sendBroadcast calls lacking explicit target package names or permission restrictions.",
+      "Passing getIntent() directly into setResult() inside exported activities can leak internal Intent structures or sensitive data back to calling applications; search for setResult calls using getIntent() directly."
+    ],
+    "rejected_as_instance_specific": []
+  },
+  "control_checklist": [
+    "Review every exported component (activity, service, receiver, provider) and confirm it enforces an appropriate permission.",
+    "Validate and sanitize all data received from Intents, extras, and deep links before use.",
+    "Ensure sensitive data (credentials, tokens, PII) is encrypted at rest and never written to logs.",
+    "Verify TLS certificate and hostname validation is never disabled or bypassed.",
+    "Check WebView configuration for unsafe settings such as JavaScript, file access, or universal access from file URLs.",
+    "Audit ContentProviders and FileProviders for over-broad access and missing access control.",
+    "Look for hardcoded secrets, credentials, API keys, or cloud configuration in code and resources.",
+    "Ensure broadcasts and intents carrying sensitive data are explicit and permission-protected, not implicit."
+  ],
+  "arms": {
+    "baseline": {
+      "name": "baseline",
+      "runs": 3,
+      "mean_recall": 0.6667,
+      "stdev_recall": 0.0,
+      "min_recall": 0.6667,
+      "max_recall": 0.6667,
+      "recall_samples": [
+        0.6667,
+        0.6667,
+        0.6667
+      ],
+      "precision_samples": [
+        0.7273,
+        0.7273,
+        0.7273
+      ],
+      "n_findings_per_run": [
+        11,
+        11,
+        11
+      ],
+      "matched_per_run": [
+        [
+          "IB-01",
+          "IB-03",
+          "IB-05",
+          "IB-07",
+          "IB-09",
+          "IB-10",
+          "IB-11",
+          "IB-12"
+        ],
+        [
+          "IB-01",
+          "IB-03",
+          "IB-05",
+          "IB-07",
+          "IB-09",
+          "IB-10",
+          "IB-11",
+          "IB-12"
+        ],
+        [
+          "IB-01",
+          "IB-03",
+          "IB-05",
+          "IB-07",
+          "IB-09",
+          "IB-10",
+          "IB-11",
+          "IB-12"
+        ]
+      ]
+    },
+    "control": {
+      "name": "control",
+      "runs": 3,
+      "mean_recall": 0.75,
+      "stdev_recall": 0.0,
+      "min_recall": 0.75,
+      "max_recall": 0.75,
+      "recall_samples": [
+        0.75,
+        0.75,
+        0.75
+      ],
+      "precision_samples": [
+        0.6923,
+        0.6923,
+        0.6923
+      ],
+      "n_findings_per_run": [
+        13,
+        13,
+        13
+      ],
+      "matched_per_run": [
+        [
+          "IB-01",
+          "IB-03",
+          "IB-04",
+          "IB-05",
+          "IB-07",
+          "IB-09",
+          "IB-10",
+          "IB-11",
+          "IB-12"
+        ],
+        [
+          "IB-01",
+          "IB-03",
+          "IB-04",
+          "IB-05",
+          "IB-07",
+          "IB-09",
+          "IB-10",
+          "IB-11",
+          "IB-12"
+        ],
+        [
+          "IB-01",
+          "IB-03",
+          "IB-04",
+          "IB-05",
+          "IB-07",
+          "IB-09",
+          "IB-10",
+          "IB-11",
+          "IB-12"
+        ]
+      ]
+    },
+    "lessons": {
+      "name": "lessons",
+      "runs": 3,
+      "mean_recall": 0.8333,
+      "stdev_recall": 0.0,
+      "min_recall": 0.8333,
+      "max_recall": 0.8333,
+      "recall_samples": [
+        0.8333,
+        0.8333,
+        0.8333
+      ],
+      "precision_samples": [
+        0.8333,
+        0.8333,
+        0.8333
+      ],
+      "n_findings_per_run": [
+        12,
+        12,
+        12
+      ],
+      "matched_per_run": [
+        [
+          "IB-01",
+          "IB-03",
+          "IB-04",
+          "IB-05",
+          "IB-06",
+          "IB-07",
+          "IB-08",
+          "IB-09",
+          "IB-11",
+          "IB-12"
+        ],
+        [
+          "IB-01",
+          "IB-03",
+          "IB-04",
+          "IB-05",
+          "IB-06",
+          "IB-07",
+          "IB-08",
+          "IB-09",
+          "IB-11",
+          "IB-12"
+        ],
+        [
+          "IB-01",
+          "IB-03",
+          "IB-04",
+          "IB-05",
+          "IB-06",
+          "IB-07",
+          "IB-08",
+          "IB-09",
+          "IB-11",
+          "IB-12"
+        ]
+      ]
+    }
+  },
+  "deltas_vs_baseline": {
+    "control": 0.0833,
+    "lessons": 0.1667
+  },
+  "meta": {
+    "decompiled_path": "./data/decompiled/insecurebankv2",
+    "files_scanned": 13
+  }
+}

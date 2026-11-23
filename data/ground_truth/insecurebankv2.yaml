@@ -1,0 +1,73 @@
+# Ground truth for InsecureBankv2 (second app, for the cross-app generalization test).
+# https://github.com/dineshshetty/Android-InsecureBankv2  (README vulnerability list)
+#
+# SCOPE: this is the STATICALLY-DETECTABLE subset of the app's documented vulns —
+# the ones that manifest as a code/manifest pattern a static scanner can find.
+# Purely dynamic/runtime items from the README (root-detection bypass, emulator
+# detection, application patching, runtime manipulation, pasteboard, keyboard
+# cache, in-memory secrets, lockscreen) and server-side logic items (username
+# enumeration, parameter manipulation, weak change-password, weak authorization)
+# are intentionally EXCLUDED, since a static scanner cannot be fairly scored on them.
+app: InsecureBankv2
+source: https://github.com/dineshshetty/Android-InsecureBankv2
+vulnerabilities:
+  - id: IB-01
+    title: "Flawed Broadcast Receivers"
+    category: insecure_broadcast_receiver
+    severity: high
+    location: {component: "MyBroadCastReceiver"}
+  - id: IB-02
+    title: "Intent Sniffing and Injection"
+    category: implicit_intent_sensitive_data
+    severity: high
+    location: {hint: "broadcast intent carries sensitive data"}
+  - id: IB-03
+    title: "Vulnerable (exported) Activity Components"
+    category: exported_component_no_permission
+    severity: medium
+    location: {hint: "activities exported without permission"}
+  - id: IB-04
+    title: "Insecure Content Provider access"
+    category: insecure_content_provider
+    severity: high
+    location: {component: "TrackUserContentProvider"}
+  - id: IB-05
+    title: "Insecure Webview implementation"
+    category: insecure_webview_settings
+    severity: medium
+    location: {component: "MyWebViewClient"}
+  - id: IB-06
+    title: "Weak Cryptography / Local Encryption"
+    category: weak_cryptography
+    severity: high
+    location: {component: "CryptoClass", hint: "hardcoded key / weak cipher"}
+  - id: IB-07
+    title: "Insecure Logging mechanism"
+    category: insecure_logging
+    severity: low
+    location: {hint: "sensitive data written via Log"}
+  - id: IB-08
+    title: "Insecure Data Storage (SharedPreferences / SDCard)"
+    category: insecure_data_storage
+    severity: medium
+    location: {component: "FilePrefActivity", hint: "credentials stored unencrypted"}
+  - id: IB-09
+    title: "Insecure HTTP connections"
+    category: cleartext_traffic
+    severity: medium
+    location: {hint: "cleartext http:// traffic"}
+  - id: IB-10
+    title: "Hardcoded secrets / Developer Backdoors"
+    category: hardcoded_credentials
+    severity: high
+    location: {hint: "hardcoded credentials / backdoor username"}
+  - id: IB-11
+    title: "Android Backup vulnerability"
+    category: backup_allowed
+    severity: low
+    location: {hint: "android:allowBackup=\"true\""}
+  - id: IB-12
+    title: "Application Debuggable"
+    category: debuggable_app
+    severity: medium
+    location: {hint: "android:debuggable=\"true\""}

@@ -91,6 +91,24 @@ quota-killed run is never reported as a real "0% lift".
 No source edits. Add a whole new model **provider** by dropping a `ModelClient`
 subclass in `models/` and one line in `models/registry.py`.
 
+## Ablation & cross-app experiments
+`apkscan experiment` runs multiple **arms** (baseline / generic-checklist control /
+distilled lessons), N times each, and reports mean ± spread — the control arm
+isolates whether the lift is from the *specific* lessons or from prepending *any*
+checklist:
+```bash
+# 3 arms x 3 runs on InsecureShop
+apkscan experiment --repeats 3 --arms baseline,control,lessons
+
+# apply InsecureShop's lessons to a SECOND app, with that app's own baseline
+apkscan experiment --repeats 3 --arms baseline,control,lessons \
+  --lessons-from runs/experiment-<ts>/experiment.json \
+  --set app.decompiled_path=./data/decompiled/insecurebankv2 \
+  --set ground_truth.path=./data/ground_truth/insecurebankv2.yaml
+```
+Results, raw run folders, and honest analysis: [`docs/EXPERIMENTS.md`](docs/EXPERIMENTS.md).
+
 ## Design docs
-See [`docs/writeup.md`](docs/writeup.md): the match function + rationale, scaling
-to 1M+ LOC, the dynamic-analysis design + diagram, and model choices.
+See [`docs/writeup.md`](docs/writeup.md) (also `writeup.pdf`): the match function +
+rationale, scaling to 1M+ LOC, the dynamic-analysis design + diagram, and model
+choices. Verification evidence: [`docs/EXPERIMENTS.md`](docs/EXPERIMENTS.md).

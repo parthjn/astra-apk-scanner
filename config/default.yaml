@@ -74,6 +74,14 @@ eval:
   # student scans. Teacher scan + lesson distillation still run once.
   repeats: 1
 
+experiment:
+  # `apkscan experiment` runs these arms, each `--repeats` times, and reports
+  # mean +/- spread. `control` swaps the distilled lessons for a GENERIC checklist
+  # (the ablation that shows the lift is from the specific lessons, not just from
+  # prepending any checklist). Add/remove arms freely.
+  arms: [baseline, control, lessons]
+  control_checklist_path: ./data/control_checklist.yaml
+
 match:
   # How a model finding is matched to a ground-truth entry. See docs/writeup.md.
   #   taxonomy  -> normalized-category equality (default; explainable, deterministic)

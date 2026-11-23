@@ -196,6 +196,23 @@ and **GT-18** (insecure storage) — the first two map directly to distilled
 lessons; GT-18 survived because the lessons were framed to *augment*, not replace,
 the student's own analysis.
 
+### Ablation (generic-checklist control) and cross-app transfer
+
+Reviewers rightly asked for a control and a second app. Full tables and raw runs:
+[`docs/EXPERIMENTS.md`](EXPERIMENTS.md) and [`runs/`](../runs).
+
+- **Control arm.** Replacing the distilled lessons with a *generic* OWASP-flavored
+  checklist of similar length (`data/control_checklist.yaml`) also lifts the
+  student (+4–8%). So part of the gain is "prepend any good checklist." The
+  distilled lessons edge the checklist in most runs and tie it in others — on
+  these two *textbook* apps with a flash-lite student the margin is ~1 GT item,
+  i.e. within run-to-run noise. The robust, reproducible effect is **guidance >
+  baseline (+5% to +14.5%)**.
+- **Cross-app transfer.** Lessons distilled from InsecureShop, applied unchanged
+  to **InsecureBankv2** (a different app, 12-item static GT), lift that app's
+  student from **66.7% → 75–83%** over its own baseline (+8–17%). The lessons are
+  general and transfer — the key signal that they aren't InsecureShop-specific.
+
 ### Honesty: variance and invalid runs
 
 This is **one app with two flash-class models**, and the signal is noisy:

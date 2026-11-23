@@ -1,0 +1,223 @@
+{
+  "app": "./data/ground_truth/insecurebankv2.yaml",
+  "models": {
+    "teacher": "gemini-3.6-flash",
+    "student": "gemini:gemini-3.1-flash-lite"
+  },
+  "match_strategy": "taxonomy",
+  "repeats": 3,
+  "lessons_source": "loaded:experiment.json",
+  "teacher": {
+    "recall": null,
+    "n_findings": 0
+  },
+  "lessons": {
+    "accepted": [
+      "Dynamic code loading via createPackageContext with CONTEXT_INCLUDE_CODE combined with reflection allows arbitrary code execution from external or spoofed packages; search for createPackageContext paired with getClassLoader().loadClass().",
+      "Exported components that extract a nested Intent from incoming extras and pass it directly to startActivity or startService enable intent redirection vulnerabilities; search for getParcelableExtra calls whose results are forwarded to component launch methods.",
+      "Validating domains using partial string matching methods like endsWith allows domain spoofing attacks (e.g., attacker domain appending the legitimate name); use strict Uri parsing with Uri.getHost() and explicit domain checks instead.",
+      "Enabling setAllowUniversalAccessFromFileURLs(true) or setAllowFileAccessFromFileURLs(true) on WebSettings allows local file schemes to bypass cross-origin policies and read local application files; inspect all WebSettings configurations for file access flags.",
+      "Overriding onReceivedSslError in a custom WebViewClient to call handler.proceed() disables SSL certificate validation and exposes network traffic to Man-in-the-Middle (MitM) attacks; search for SslErrorHandler.proceed() usage.",
+      "Broadcasting sensitive data using implicit Intents allows any application installed on the device to register a receiver and steal secrets; use explicit Intents with setPackage() or restricted permissions for sensitive broadcasts.",
+      "Exported Content Providers that expose database or SharedPreferences data via query() allow any third-party application on the device to read sensitive information; audit provider declarations in the manifest and ensure exported components enforce proper read/write permissions.",
+      "Reflecting an incoming Intent directly back to the caller via setResult(RESULT_OK, getIntent()) can leak sensitive extras or intent data to arbitrary launching activities; sanitize intent extras before passing them to setResult.",
+      "Storing authentication credentials or sensitive data in standard unencrypted SharedPreferences exposes them to theft via backup or root access; store sensitive data using EncryptedSharedPreferences backed by the Android Keystore.",
+      "Embedding hardcoded credentials, cloud identity pool IDs, or API keys directly in source code or string resources exposes infrastructure and services to unauthorized access; search source code and XML resources for hardcoded secret strings.",
+      "Setting android:debuggable=\"true\" in AndroidManifest.xml permits attackers to attach a debugger to the process, inspect runtime memory, and execute arbitrary code; ensure debug mode is disabled in production builds.",
+      "Setting android:usesCleartextTraffic=\"true\" allows the application to send unencrypted HTTP network traffic, exposing sensitive data to interception; enforce TLS by configuring Network Security Config and disabling cleartext traffic.",
+      "Setting android:allowBackup=\"true\" without restriction allows physical or ADB access to extract application private storage via adb backup; set allowBackup to false or restrict sensitive paths using fullBackupContent."
+    ],
+    "rejected_as_instance_specific": []
+  },
+  "control_checklist": [
+    "Review every exported component (activity, service, receiver, provider) and confirm it enforces an appropriate permission.",
+    "Validate and sanitize all data received from Intents, extras, and deep links before use.",
+    "Ensure sensitive data (credentials, tokens, PII) is encrypted at rest and never written to logs.",
+    "Verify TLS certificate and hostname validation is never disabled or bypassed.",
+    "Check WebView configuration for unsafe settings such as JavaScript, file access, or universal access from file URLs.",
+    "Audit ContentProviders and FileProviders for over-broad access and missing access control.",
+    "Look for hardcoded secrets, credentials, API keys, or cloud configuration in code and resources.",
+    "Ensure broadcasts and intents carrying sensitive data are explicit and permission-protected, not implicit."
+  ],
+  "arms": {
+    "baseline": {
+      "name": "baseline",
+      "runs": 3,
+      "mean_recall": 0.6667,
+      "stdev_recall": 0.0,
+      "min_recall": 0.6667,
+      "max_recall": 0.6667,
+      "recall_samples": [
+        0.6667,
+        0.6667,
+        0.6667
+      ],
+      "precision_samples": [
+        0.7273,
+        0.7273,
+        0.7273
+      ],
+      "n_findings_per_run": [
+        11,
+        11,
+        11
+      ],
+      "matched_per_run": [
+        [
+          "IB-01",
+          "IB-03",
+          "IB-05",
+          "IB-07",
+          "IB-09",
+          "IB-10",
+          "IB-11",
+          "IB-12"
+        ],
+        [
+          "IB-01",
+          "IB-03",
+          "IB-05",
+          "IB-07",
+          "IB-09",
+          "IB-10",
+          "IB-11",
+          "IB-12"
+        ],
+        [
+          "IB-01",
+          "IB-03",
+          "IB-05",
+          "IB-07",
+          "IB-09",
+          "IB-10",
+          "IB-11",
+          "IB-12"
+        ]
+      ]
+    },
+    "control": {
+      "name": "control",
+      "runs": 3,
+      "mean_recall": 0.75,
+      "stdev_recall": 0.0,
+      "min_recall": 0.75,
+      "max_recall": 0.75,
+      "recall_samples": [
+        0.75,
+        0.75,
+        0.75
+      ],
+      "precision_samples": [
+        0.6923,
+        0.6923,
+        0.6923
+      ],
+      "n_findings_per_run": [
+        13,
+        13,
+        13
+      ],
+      "matched_per_run": [
+        [
+          "IB-01",
+          "IB-03",
+          "IB-04",
+          "IB-05",
+          "IB-07",
+          "IB-09",
+          "IB-10",
+          "IB-11",
+          "IB-12"
+        ],
+        [
+          "IB-01",
+          "IB-03",
+          "IB-04",
+          "IB-05",
+          "IB-07",
+          "IB-09",
+          "IB-10",
+          "IB-11",
+          "IB-12"
+        ],
+        [
+          "IB-01",
+          "IB-03",
+          "IB-04",
+          "IB-05",
+          "IB-07",
+          "IB-09",
+          "IB-10",
+          "IB-11",
+          "IB-12"
+        ]
+      ]
+    },
+    "lessons": {
+      "name": "lessons",
+      "runs": 3,
+      "mean_recall": 0.75,
+      "stdev_recall": 0.0,
+      "min_recall": 0.75,
+      "max_recall": 0.75,
+      "recall_samples": [
+        0.75,
+        0.75,
+        0.75
+      ],
+      "precision_samples": [
+        0.75,
+        0.75,
+        0.75
+      ],
+      "n_findings_per_run": [
+        12,
+        12,
+        12
+      ],
+      "matched_per_run": [
+        [
+          "IB-01",
+          "IB-03",
+          "IB-04",
+          "IB-05",
+          "IB-07",
+          "IB-08",
+          "IB-10",
+          "IB-11",
+          "IB-12"
+        ],
+        [
+          "IB-01",
+          "IB-03",
+          "IB-04",
+          "IB-05",
+          "IB-07",
+          "IB-08",
+          "IB-10",
+          "IB-11",
+          "IB-12"
+        ],
+        [
+          "IB-01",
+          "IB-03",
+          "IB-04",
+          "IB-05",
+          "IB-07",
+          "IB-08",
+          "IB-10",
+          "IB-11",
+          "IB-12"
+        ]
+      ]
+    }
+  },
+  "deltas_vs_baseline": {
+    "control": 0.0833,
+    "lessons": 0.0833
+  },
+  "meta": {
+    "decompiled_path": "./data/decompiled/insecurebankv2",
+    "files_scanned": 13
+  }
+}

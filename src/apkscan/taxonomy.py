@@ -94,8 +94,20 @@ TAXONOMY: Dict[str, List[str]] = {
         "insecure logging", "log.d", "log.v", "log.i", "log.e", "logcat",
         "logs credential", "sensitive data logged", "println",
     ],
+    # Generic Android weakness classes shared across many apps
+    "weak_cryptography": [
+        "weak crypto", "weak cipher", "insecure cipher", "ecb", "ecb mode",
+        "secretkeyspec", "cipher.getinstance", "hardcoded key", "hardcoded encryption key",
+        "hardcoded iv", "static iv", "md5 hash", "des encryption", "3des", "ivparameterspec",
+    ],
+    "backup_allowed": [
+        "allowbackup", "android:allowbackup", "backup enabled", "adb backup", "allow backup",
+    ],
+    "debuggable_app": [
+        "android:debuggable", "debuggable true", "debuggable flag", "debuggable=\"true\"",
+    ],
     # Generic fallback buckets (still useful on unseen apps)
-    "cleartext_traffic": ["cleartext traffic", "usescleartexttraffic", "http://", "clear-text"],
+    "cleartext_traffic": ["cleartext traffic", "usescleartexttraffic", "http://", "clear-text", "insecure http"],
     "exported_component_no_permission": [
         "exported", "android:exported", "no permission", "missing permission",
         "unprotected activity", "unprotected service",

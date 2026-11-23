@@ -72,3 +72,16 @@ def test_generality_guard():
     assert _looks_instance_specific("UserProvider is exported", banned)
     assert not _looks_instance_specific(
         "Exported content providers without a signature permission let any app read their data.", banned)
+
+
+def test_generic_filenames_are_not_app_specific():
+    # even when a finding cites AndroidManifest.xml / strings.xml as its location,
+    # a lesson mentioning those generic files must NOT be rejected
+    banned = _banned_tokens([
+        Finding(vuln_type="x", file="resources/AndroidManifest.xml"),
+        Finding(vuln_type="y", file="resources/res/values/strings.xml"),
+    ])
+    assert not _looks_instance_specific(
+        'Setting android:usesCleartextTraffic="true" in AndroidManifest.xml enables HTTP MitM.', banned)
+    assert not _looks_instance_specific(
+        "Hardcoded authentication strings in resource files are extractable via reverse engineering.", banned)

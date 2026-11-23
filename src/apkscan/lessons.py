@@ -62,9 +62,16 @@ def _banned_tokens(findings: List[Finding]) -> set:
         if f.file:
             base = f.file.rsplit("/", 1)[-1].rsplit(".", 1)[0]
             toks.add(base.lower())
-    # don't ban generic Android words even if they appear as a component name
-    toks -= {"main", "login", "result", "chooser", "web", "webview", "activity",
-             "provider", "receiver", "service", "application"}
+    # Don't ban generic Android words / framework file names, even when a finding
+    # cites them as a location — they appear in EVERY app, so a lesson mentioning
+    # e.g. "AndroidManifest.xml" or "strings.xml" is still general, not app-specific.
+    toks -= {
+        "main", "login", "result", "chooser", "web", "webview", "activity",
+        "provider", "receiver", "service", "application",
+        "androidmanifest", "manifest", "strings", "arrays", "styles", "colors",
+        "dimens", "themes", "values", "buildconfig", "resources", "drawable",
+        "layout", "menu", "mipmap", "string", "array",
+    }
     return toks
 
 
